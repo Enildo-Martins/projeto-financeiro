@@ -25,52 +25,48 @@ def extrair_dados_nota_fiscal(pdf_stream):
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-1.5-flash-latest')
 
-        # --- PROMPT DE MÁXIMA PRECISÃO ---
+        # --- PROMPT FINAL CORRIGIDO ---
         prompt = f"""
-            Sua tarefa é atuar como um sistema de OCR e extração de dados de alta precisão, especializado em DANFEs (Documento Auxiliar da Nota Fiscal Eletrônica) do Brasil. Você deve analisar o texto fornecido e preencher a estrutura JSON abaixo com exatidão absoluta, sem erros, omissões ou trocas de informação.
+            Você é um assistente de IA especialista em extrair e interpretar dados de notas fiscais brasileiras. Sua tarefa mais importante é extrair os campos solicitados e, crucialmente, classificar a despesa.
 
-            A ESTRUTURA FINAL DEVE SER EXATAMENTE ESTA:
+            A ESTRUTURA FINAL DO JSON DEVE SER EXATAMENTE ESTA:
             {{
-              "identificacao": {{"numero": "string", "serie": "string", "data_emissao": "string (YYYY-MM-DD)", "data_saida_entrada": "string (YYYY-MM-DD)", "natureza_operacao": "string"}},
-              "emitente": {{"nome_razao_social": "string", "cnpj": "string", "inscricao_estadual": "string", "endereco_completo": "string"}},
-              "destinatario": {{"nome_razao_social": "string", "cpf_cnpj": "string", "inscricao_estadual": "string", "endereco_completo": "string"}},
-              "produtos": [{{"codigo": "string", "descricao": "string", "ncm": "string", "cfop": "string", "unidade": "string", "quantidade": "float", "valor_unitario": "float", "valor_total": "float"}}],
-              "totais": {{"base_calculo_icms": "float", "valor_icms": "float", "valor_frete": "float", "valor_seguro": "float", "desconto": "float", "outras_despesas": "float", "valor_total_produtos": "float", "valor_total_nota": "float"}},
-              "fatura_duplicatas": [{{"numero_fatura": "string", "data_vencimento": "string (YYYY-MM-DD)", "valor": "float"}}],
-              "transporte": {{"modalidade_frete": "string", "transportadora_nome": "string", "transportadora_cnpj_cpf": "string", "placa_veiculo": "string"}},
+              "fornecedor": {{ "razao_social": "string", "fantasia": "string", "cnpj": "string" }},
+              "faturado": {{ "nome_completo": "string", "cpf": "string" }},
+              "numero_nota_fiscal": "string",
+              "data_emissao": "string (no formato YYYY-MM-DD)",
+              "descricao_produtos": ["string"],
+              "parcelas": [{{ "data_vencimento": "string (no formato YYYY-MM-DD)", "valor_total": "float" }}],
               "classificacao_despesa": "string"
             }}
 
-            GUIA DE EXTRAÇÃO DETALHADO POR SEÇÃO:
+            REGRAS CRÍTICAS DE EXECUÇÃO:
 
-            1.  **Seção 'emitente'**:
-                -   Localize a caixa no topo do documento com o título "IDENTIFICAÇÃO DO EMITENTE".
-                -   TODOS os dados desta seção JSON (`nome_razao_social`, `cnpj`, `inscricao_estadual`, `endereco_completo`) devem ser extraídos EXCLUSIVAMENTE de dentro desta caixa.
-                -   O CNPJ do emitente está nesta caixa.
-                -   A Inscrição Estadual do emitente está nesta caixa.
+            1.  **CLASSIFICAÇÃO DE DESPESA (TAREFA PRIORITÁRIA)**:
+                -   Esta é a tarefa mais importante. O campo 'classificacao_despesa' NÃO PODE ser nulo.
+                -   Analise a 'descricao_produtos' e escolha UMA das categorias da lista abaixo.
+                -   Se um item não se encaixar perfeitamente em categorias industriais ou agrícolas (como uma raquete, material de escritório, etc.), classifique-o como 'ADMINISTRATIVAS'.
 
-            2.  **Seção 'destinatario'**:
-                -   Localize a caixa com o título "DESTINATARIO/REMETENTE".
-                -   TODOS os dados desta seção JSON (`nome_razao_social`, `cpf_cnpj`, `endereco_completo`) devem ser extraídos EXCLUSIVAMENTE de dentro desta caixa.
-                -   O `nome_razao_social` do destinatário geralmente está em uma linha própria, abaixo do rótulo.
-                -   O CPF ou CNPJ do destinatário está nesta caixa.
+            2.  **NOME DO FATURADO (EXTRAÇÃO OBRIGATÓRIA)**:
+                -   O campo 'faturado.nome_completo' é obrigatório.
+                -   Em muitos DANFEs, o nome do destinatário aparece em uma linha sozinho, logo abaixo do rótulo "NOME RAZÃO SOCIAL". Procure atentamente por este padrão.
 
-            3.  **Seção 'produtos'**:
-                -   Localize a tabela com o título "DADOS DOS PRODUTOS/SERVIÇOS".
-                -   Para cada linha da tabela, crie um objeto JSON.
-                -   O campo `codigo` deve ser extraído da coluna "CÓDIGO". Transcreva-o com precisão absoluta. A letra 'O' é diferente do número '0'. Exemplo: 'BODKG5CTR9' é o correto.
-                -   Extraia as outras colunas (`NCM/SH`, `CFOP`, `UNID`, `QUANT`, `VALOR UNITÁRIO`, `VALOR TOTAL`) para os campos correspondentes.
+            3.  **DEMAIS REGRAS**:
+                -   Preencha todos os outros campos da estrutura. Se 'fantasia' ou 'cpf' não existirem, use `null`.
+                -   'parcelas' deve ser uma lista de objetos. Use o VALOR TOTAL DA NOTA para o campo 'valor_total'.
 
-            4.  **Seção 'fatura_duplicatas'**:
-                -   Localize a caixa "FATURA/DUPLICATA". Se estiver vazia, retorne uma lista vazia `[]`.
+            LISTA DE CATEGORIAS DE DESPESAS PARA CLASSIFICAÇÃO:
+            - **INSUMOS AGRÍCOLAS**: Sementes, Fertilizantes, Defensivos Agrícolas.
+            - **MANUTENÇÃO E OPERAÇÃO**: Combustíveis, Lubrificantes, Peças, Ferramentas.
+            - **RECURSOS HUMANOS**: Mão de Obra Temporária, Salários.
+            - **SERVIÇOS OPERACIONAIS**: Frete, Transporte, Colheita Terceirizada.
+            - **INFRAESTRUTURA E UTILIDADES**: Energia Elétrica, Materiais de Construção.
+            - **ADMINISTRATIVAS**: Honorários, Despesas Bancárias, e outros itens de consumo ou escritório.
+            - **SEGUROS E PROTEÇÃO**: Seguro Agrícola, Seguro de Ativos.
+            - **IMPOSTOS E TAXAS**: ITR, IPTU, IPVA.
+            - **INVESTIMENTOS**: Aquisição de Máquinas, Veículos, Imóveis.
 
-            5.  **Regra de Verificação Final (MUITO IMPORTANTE)**:
-                -   Antes de finalizar, verifique: O CNPJ em `emitente.cnpj` pertence ao EMITENTE? O CPF/CNPJ em `destinatario.cpf_cnpj` pertence ao DESTINATÁRIO? A Inscrição Estadual em `emitente.inscricao_estadual` pertence ao EMITENTE? É CRÍTICO que esses valores não estejam trocados entre as seções.
-
-            6.  **Regra de Classificação de Despesa**:
-                -   Classifique a despesa com base nos produtos em uma das categorias: INSUMOS AGRÍCOLAS, MANUTENÇÃO E OPERAÇÃO, INFRAESTRUTURA E UTILIDADES, DESPESAS GERAIS E ADMINISTRATIVAS, INVESTIMENTOS (apenas máquinas, veículos, imóveis).
-
-            Analise o texto a seguir com o máximo de atenção e detalhe, seguindo o guia acima, e retorne APENAS o JSON perfeito e validado.
+            Analise o texto a seguir, siga as regras CRÍTICAS e retorne APENAS o JSON completo e correto.
 
             --- TEXTO DA NOTA FISCAL ---
             {pdf_text}
