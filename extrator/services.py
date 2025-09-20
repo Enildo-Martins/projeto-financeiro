@@ -1,7 +1,5 @@
-# extrator/services.py
-
 import os
-import fitz  # PyMuPDF
+import fitz  
 import google.generativeai as genai
 import json
 from dotenv import load_dotenv
@@ -25,7 +23,6 @@ def extrair_dados_nota_fiscal(pdf_stream):
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-1.5-flash-latest')
 
-        # --- PROMPT FINAL CORRIGIDO ---
         prompt = f"""
             Você é um assistente de IA especialista em extrair e interpretar dados de notas fiscais brasileiras. Sua tarefa mais importante é extrair os campos solicitados e, crucialmente, classificar a despesa.
 

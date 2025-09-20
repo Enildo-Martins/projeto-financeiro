@@ -66,11 +66,8 @@
 
     <script>
         function copyJson() {
-            // Encontra o elemento que contém o JSON
             const jsonText = document.getElementById('json-output').innerText;
-            // Usa a API do navegador para copiar o texto
             navigator.clipboard.writeText(jsonText).then(() => {
-                // Feedback visual para o usuário
                 alert('JSON copiado para a área de transferência!');
             }).catch(err => {
                 console.error('Erro ao copiar JSON: ', err);
