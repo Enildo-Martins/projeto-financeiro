@@ -1,0 +1,4 @@
+Django
+google-generativeai
+python-dotenv
+PyMuPDF

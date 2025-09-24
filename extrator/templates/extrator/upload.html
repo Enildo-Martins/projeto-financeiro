@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extração de Dados de NF-e</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f4f9; color: #333; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; margin: 0; padding: 2rem 0; }
+        .container { background-color: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 100%; max-width: 800px; }
+        .header { text-align: center; margin-bottom: 2rem; }
+        h1 { color: #444; }
+        p { color: #666; }
+        .upload-box { border: 2px dashed #ccc; padding: 2rem; border-radius: 8px; margin-bottom: 1.5rem; }
+        form { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+        input[type="file"] { border: 1px solid #ddd; padding: 0.5rem; border-radius: 4px; }
+        button { background-color: #007bff; color: white; padding: 0.8rem 1.5rem; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; transition: background-color 0.3s; }
+        button:hover { background-color: #0056b3; }
+        .results-box { margin-top: 2rem; border: 1px solid #ddd; border-radius: 8px; }
+        .results-header { background-color: #f7f7f7; padding: 0.8rem; border-bottom: 1px solid #ddd; border-radius: 8px 8px 0 0; }
+        .results-header span { font-weight: bold; }
+        .results-content { padding: 1rem; }
+        pre { background-color: #2d2d2d; color: #f8f8f2; padding: 1rem; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; }
+        .copy-button { display: block; margin-top: 1rem; text-align: right; }
+        .error-message { color: #d9534f; background-color: #f2dede; border: 1px solid #ebccd1; padding: 1rem; border-radius: 4px; margin-top: 1.5rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Extração de Dados de Nota Fiscal</h1>
+            <p>Carregue um PDF de nota fiscal e extraia os dados automaticamente usando IA.</p>
+        </div>
+
+        <div class="upload-box">
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <label for="pdf_file">Selecione o arquivo PDF da nota fiscal:</label>
+                <input type="file" name="pdf_file" id="pdf_file" accept=".pdf" required>
+                <button type="submit">EXTRAIR DADOS</button>
+            </form>
+        </div>
+
+        {% if error_message %}
+            <div class="error-message">
+                <strong>Erro:</strong> {{ error_message }}
+            </div>
+        {% endif %}
+
+        {% if extracted_data_json %}
+            <div class="results-box">
+                <div class="results-header">
+                    <span><> Dados em JSON</span>
+                </div>
+                <div class="results-content">
+                    <pre><code id="json-output">{{ extracted_data_json }}</code></pre>
+                    <div class="copy-button">
+                        <button onclick="copyJson()">Copiar JSON</button>
+                    </div>
+                    <p style="font-size: 0.9em; color: #666; margin-top: 1rem;">
+                        Este JSON contém todos os dados extraídos da nota fiscal e pode ser usado para integração com outros sistemas.
+                    </p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function copyJson() {
+            const jsonText = document.getElementById('json-output').innerText;
+            navigator.clipboard.writeText(jsonText).then(() => {
+                alert('JSON copiado para a área de transferência!');
+            }).catch(err => {
+                console.error('Erro ao copiar JSON: ', err);
+                alert('Falha ao copiar o JSON.');
+            });
+        }
+    </script>
+</body>
+</html>
