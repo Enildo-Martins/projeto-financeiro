@@ -1,0 +1,281 @@
+{% extends 'base.html' %}
+{% block title %}Upload de NF-e para Análise{% endblock %}
+
+{% block content %}
+<style>
+    .header h1 { font-family: 'Exo 2', sans-serif; color: var(--bs-body-color); font-weight: 700; font-size: 1.5em; }
+    .header p { color: #8b949e; font-weight: 300; margin-bottom: 2rem; }
+    #drop-zone { border: 2px dashed var(--bs-border-color); border-radius: 6px; padding: 4rem 2rem; cursor: pointer; transition: all 0.3s ease; }
+    #drop-zone.dragover { border-color: var(--primary-blue); background-color: rgba(56, 139, 253, 0.1); }
+    #file-name { color: var(--primary-blue); font-style: italic; }
+    #remove-file-btn { color: var(--primary-red); }
+    #submit-btn { background-color: var(--primary-blue); border-color: var(--primary-blue); }
+    .results-box { text-align: left; margin-top: 1.5rem; border: 1px solid var(--bs-border-color); border-radius: 6px; overflow: hidden; }
+    .results-header { background-color: #21262d; padding: 0.8rem; font-weight: bold; }
+    .results-content { padding: 1rem; }
+    .risk-box { text-align: left; border: 1px solid; border-radius: 6px; overflow: hidden; }
+    .risk-header { padding: 0.8rem; font-weight: bold; color: #fff; }
+    .risk-low { border-color: var(--primary-green); } .risk-header.low { background-color: var(--primary-green); }
+    .risk-medium { border-color: var(--primary-orange); } .risk-header.medium { background-color: var(--primary-orange); }
+    .risk-high { border-color: var(--primary-red); } .risk-header.high { background-color: var(--primary-red); }
+    .red-flag { border-left: 3px solid var(--primary-red); padding-left: 1rem; margin-top: 1rem; background-color: rgba(218, 54, 51, 0.05); }
+    pre { background-color: #010409; }
+    details > summary { cursor: pointer; color: var(--primary-blue); }
+    .spinner { border: 4px solid rgba(56, 139, 253, 0.2); border-left-color: var(--primary-blue); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 1.5rem auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #progress-message { color: var(--primary-blue); font-size: 1.1em; }
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); justify-content: center; align-items: center; z-index: 1000; }
+    .modal-content { background: var(--primary-dark); padding: 2rem; border-radius: 8px; width: 90%; max-width: 500px; text-align: left; }
+</style>
+
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-file-earmark-arrow-up-fill"></i> Upload de NF-e
+    </div>
+    <div class="card-body text-center">
+        <div id="initial-view">
+            <div class="header">
+                <h1>Análise de NF-e com IA</h1>
+                <p><i>Extração de dados com Google Gemini e auditoria de riscos com OpenAI</i></p>
+            </div>
+
+            <div id="error-container" class="alert alert-danger" style="display: none; text-align: left;"></div>
+
+            <form id="upload-form" action="{% url 'processar_pdf' %}" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <label for="pdf_file" id="drop-zone">
+                    <div id="drop-zone-instructions">
+                        <p class="mb-1">Arraste e solte o arquivo PDF aqui</p>
+                        <span class="text-muted">ou clique para selecionar</span>
+                    </div>
+                    <div id="file-info" class="d-flex align-items-center justify-content-center gap-2 mt-2">
+                        <p id="file-name" class="mb-0"></p>
+                        <button type="button" id="remove-file-btn" class="btn btn-sm" style="display: none;">&times;</button>
+                    </div>
+                </label>
+                <input type="file" name="pdf_file" id="pdf_file" class="d-none" accept=".pdf">
+                <div class="text-center">
+                    <button id="submit-btn" type="submit" class="btn btn-primary mt-3" style="display: none;">
+                        <i class="bi bi-robot"></i> Analisar Arquivo
+                    </button>
+                </div>
+            </form>
+            <div id="progress-container" style="display: none;" class="py-5">
+                <div class="spinner"></div>
+                <p id="progress-message"></p>
+            </div>
+        </div>
+
+        <div id="result-view" style="display: none;">
+            <div class="header">
+                <h1>Resultados da Análise</h1>
+            </div>
+            <div id="result-content"></div>
+        </div>
+    </div>
+</div>
+
+<div id="success-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h2 id="modal-title" class="text-success"></h2>
+        <p>Os seguintes registros foram criados no banco de dados:</p>
+        <ul id="modal-list" class="list-unstyled"></ul>
+        <div class="text-center mt-4">
+            <button id="modal-close-btn" class="btn btn-secondary"><i class="bi bi-arrow-left-circle"></i> Voltar à Tela Inicial</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const initialView = document.getElementById('initial-view');
+    const resultView = document.getElementById('result-view');
+    const form = document.getElementById('upload-form');
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('pdf_file');
+    const fileNameDisplay = document.getElementById('file-name');
+    const submitBtn = document.getElementById('submit-btn');
+    const removeBtn = document.getElementById('remove-file-btn');
+    const instructions = document.getElementById('drop-zone-instructions');
+    const progressContainer = document.getElementById('progress-container');
+    const progressMessage = document.getElementById('progress-message');
+    const resultContent = document.getElementById('result-content');
+    const successModal = document.getElementById('success-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalList = document.getElementById('modal-list');
+    const modalCloseBtn = document.getElementById('modal-close-btn');
+    const errorContainer = document.getElementById('error-container');
+
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0 && e.dataTransfer.files[0].type === 'application/pdf') {
+            fileInput.files = e.dataTransfer.files;
+            updateFileInfo();
+        }
+    });
+    fileInput.addEventListener('change', updateFileInfo);
+    removeBtn.addEventListener('click', e => {
+        e.preventDefault(); e.stopPropagation();
+        fileInput.value = ''; updateFileInfo();
+    });
+    modalCloseBtn.addEventListener('click', () => location.reload());
+
+    function updateFileInfo() {
+        errorContainer.style.display = 'none';
+        if (fileInput.files.length > 0) {
+            instructions.style.display = 'none';
+            fileNameDisplay.textContent = fileInput.files[0].name;
+            removeBtn.style.display = 'inline-block';
+            submitBtn.style.display = 'inline-block';
+        } else {
+            instructions.style.display = 'block';
+            fileNameDisplay.textContent = '';
+            removeBtn.style.display = 'none';
+            submitBtn.style.display = 'none';
+        }
+    }
+
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        if (fileInput.files.length === 0) return;
+
+        errorContainer.style.display = 'none';
+        form.style.display = 'none';
+        progressContainer.style.display = 'block';
+        progressMessage.textContent = 'Enviando arquivo...';
+
+        const formData = new FormData(form);
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+        })
+        .then(response => {
+            if (!response.ok) { throw new Error(`Erro no servidor: ${response.statusText}`); }
+            return response.json();
+        })
+        .then(data => {
+            if (data.task_id) { pollTaskStatus(data.task_id); }
+            else { showError(data.error || 'Falha ao iniciar o processamento. Resposta inválida do servidor.'); }
+        })
+        .catch(err => showError(`Erro de comunicação: ${err.message}`));
+    });
+
+    function pollTaskStatus(taskId) {
+        const interval = setInterval(() => {
+            fetch(`/task_status/${taskId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.state === 'SUCCESS') {
+                        clearInterval(interval);
+                        initialView.style.display = 'none';
+                        resultView.style.display = 'block';
+                        resultView.closest('.card').scrollIntoView({ behavior: 'smooth' });
+                        renderResults(data.result);
+                    } else if (data.state === 'FAILURE') {
+                        clearInterval(interval);
+                        showError(data.error_message || 'Um erro desconhecido ocorreu no processamento do arquivo.');
+                    } else {
+                        progressMessage.textContent = data.status || 'Processando...';
+                    }
+                })
+                .catch(err => {
+                    clearInterval(interval);
+                    showError(`Erro ao verificar o status da tarefa: ${err.message}`);
+                });
+        }, 2500);
+    }
+
+    function showError(message) {
+        progressContainer.style.display = 'none';
+        form.style.display = 'block';
+        errorContainer.textContent = `Falha na Análise: ${message}`;
+        errorContainer.style.display = 'block';
+    }
+
+    resultContent.addEventListener('click', function(event) {
+        const confirmBtn = event.target.closest('#confirm-btn');
+        const newAnalysisBtn = event.target.closest('#new-analysis-btn');
+
+        if (confirmBtn) {
+            event.preventDefault();
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            fetch("{% url 'confirmar_lancamento' %}", {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    modalTitle.textContent = data.message;
+                    modalList.innerHTML = data.created_items.map(item => `<li class="border-bottom border-secondary p-2">${item}</li>`).join('');
+                    successModal.style.display = 'flex';
+                } else { alert('Erro ao confirmar: ' + (data.error || 'Erro desconhecido.')); }
+            });
+        }
+        if (newAnalysisBtn) { location.reload(); }
+    });
+
+    // --- FUNÇÃO CORRIGIDA ABAIXO ---
+    function renderResults(result) {
+        const { risk_analysis, validation_results, extracted_data } = result;
+        let risk_level = 'low';
+        if (risk_analysis.risk_score > 7) risk_level = 'high';
+        else if (risk_analysis.risk_score > 3) risk_level = 'medium';
+
+        let validationHtml = '';
+
+        // Renderiza Fornecedor
+        const f = validation_results.fornecedor;
+        const f_name = f.detail.razao_social || f.detail.razaosocial;
+        const f_statusColor = f.status === 'EXISTE' ? 'text-success' : 'text-warning';
+        const f_idText = f.id ? ` (ID: ${f.id})` : '';
+        validationHtml += `<p><strong>Fornecedor:</strong> ${f_name} - <span class="fw-bold ${f_statusColor}">${f.status}${f_idText}</span></p>`;
+
+        // Renderiza Faturado
+        const fat = validation_results.faturado;
+        const fat_name = fat.detail.nome_completo;
+        const fat_statusColor = fat.status === 'EXISTE' ? 'text-success' : 'text-warning';
+        const fat_idText = fat.id ? ` (ID: ${fat.id})` : '';
+        validationHtml += `<p><strong>Faturado:</strong> ${fat_name} - <span class="fw-bold ${fat_statusColor}">${fat.status}${fat_idText}</span></p>`;
+
+        // Renderiza a LISTA de Classificações
+        validation_results.classificacoes.forEach(c => {
+            const c_name = c.detail.descricao;
+            const c_statusColor = c.status === 'EXISTE' ? 'text-success' : 'text-warning';
+            const c_idText = c.id ? ` (ID: ${c.id})` : '';
+            validationHtml += `<p><strong>Classificação:</strong> ${c_name} - <span class="fw-bold ${c_statusColor}">${c.status}${c_idText}</span></p>`;
+        });
+
+        const riskFlagsHtml = (risk_analysis.red_flags || []).map(flag => `<div class="red-flag"><strong>${flag.type}:</strong> ${flag.description}</div>`).join('');
+        const riskContentHtml = risk_analysis.red_flags && risk_analysis.red_flags.length > 0 ? `<h4>Alertas Encontrados:</h4>${riskFlagsHtml}` : '<p class="text-success">Nenhuma inconsistência significativa foi detectada.</p>';
+
+        resultContent.innerHTML = `
+            <div class="risk-box risk-${risk_level}">
+                <div class="risk-header ${risk_level}">Parecer do Analista de Risco (IA): Nível ${risk_level.toUpperCase()} (Nota: ${risk_analysis.risk_score}/10)</div>
+                <div class="results-content"><p><strong>Resumo da Análise:</strong> <em>${risk_analysis.summary}</em></p>${riskContentHtml}</div>
+            </div>
+            <div class="results-box">
+                <div class="results-header">Validação de Dados no Banco</div>
+                <div class="results-content">${validationHtml}</div>
+            </div>
+            <div class="d-flex justify-content-center gap-2 mt-4">
+                <button type="button" id="new-analysis-btn" class="btn btn-secondary"><i class="bi bi-arrow-clockwise"></i> Nova Análise</button>
+                <button type="button" id="confirm-btn" class="btn btn-success"><i class="bi bi-check-circle-fill"></i> Confirmar e Lançar</button>
+            </div>
+            <details class="mt-4 text-start">
+                <summary>Ver JSONs Completos</summary>
+                <pre class="mt-2"><code>${JSON.stringify(extracted_data, null, 2)}</code></pre>
+                <hr>
+                <pre><code>${JSON.stringify(risk_analysis, null, 2)}</code></pre>
+            </details>
+        `;
+    }
+});
+</script>
+{% endblock %}

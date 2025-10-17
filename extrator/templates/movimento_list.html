@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Listagem de Movimentos Financeiros{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-ul"></i> Movimentos Financeiros (Notas Fiscais)</span>
+    </div>
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Emissão</th>
+                    <th>Nº da Nota</th>
+                    <th>Tipo</th>
+                    <th>Fornecedor/Cliente</th>
+                    <th>Faturado</th>
+                    <th class="text-end">Valor Total</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in movimentos %}
+                <tr>
+                    <td>{{ m.dataemissao|date:"d/m/Y" }}</td>
+                    <td>{{ m.numeronotafiscal }}</td>
+                    <td>
+                        <span class="badge bg-{% if m.tipo == 'PAGAR' %}danger{% else %}success{% endif %}">
+                            {{ m.tipo|capfirst }}
+                        </span>
+                    </td>
+                    <td>{{ m.fornecedor_cliente }}</td>
+                    <td>{{ m.faturado }}</td>
+                    <td class="text-end">R$ {{ m.valortotal|floatformat:2 }}</td>
+                    <td>{{ m.status|capfirst }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center">Nenhum movimento financeiro encontrado.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
