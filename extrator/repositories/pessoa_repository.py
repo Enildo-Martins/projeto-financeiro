@@ -15,7 +15,7 @@ class PessoaRepository(BaseRepository):
         """
         params = [
             tipo,
-            detail.get('razaosocial') or detail.get('razao_social') or detail.get('nome_completo'),
+            detail.get('razaosocial') or detail.get('razao_social') or detail.get('nome_completo') or detail.get('pessoa_fisica'),
             detail.get('fantasia'),
             detail.get('documento') or detail.get('cnpj') or detail.get('cpf/cnpj')
         ]

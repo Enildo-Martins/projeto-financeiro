@@ -47,6 +47,7 @@ class AgentExtrator:
                     -   Se um item não se encaixar perfeitamente (ex: material de escritório), classifique-o como 'ADMINISTRATIVAS'.
                 2.  **NOME DO FATURADO**: O campo 'faturado.nome_completo' é obrigatório.
                 3.  **DEMAIS REGRAS**: Preencha todos os outros campos. Se um campo opcional não for encontrado, use `null`.
+                4. Se voce não encontrar um faturado, use o conteudo do campo 'nome/razao' como nome do faturado.
 
                 LISTA DE CATEGORIAS DE DESPESAS:
                 - INSUMOS AGRÍCOLAS
