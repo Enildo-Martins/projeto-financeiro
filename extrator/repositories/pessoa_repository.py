@@ -54,6 +54,6 @@ class PessoaRepository(BaseRepository):
     def list_active_clients(self):
         query = """
             SELECT id, razaosocial FROM "Pessoas" 
-            WHERE tipo = 'CLIENTE' AND status = 'ATIVO' ORDER BY razaosocial
+            WHERE tipo IN ('CLIENTE', 'FATURADO') AND status = 'ATIVO' ORDER BY razaosocial
         """
         return self._execute_query(query, fetch="all")

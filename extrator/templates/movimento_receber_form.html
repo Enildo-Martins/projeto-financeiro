@@ -2,16 +2,6 @@
 {% block title %}Registrar Conta a Receber{% endblock %}
 
 {% block content %}
-<style>
-    .checkbox-container {
-        max-height: 150px;
-        overflow-y: auto;
-        border: 1px solid var(--bs-border-color);
-        padding: 10px;
-        border-radius: 6px;
-        background-color: var(--bs-body-bg);
-    }
-</style>
 
 <div class="card">
     <div class="card-header">
@@ -32,17 +22,15 @@
 
                 <div class="col-md-6 mb-3">
                     <label for="classificacoes" class="form-label">Classificações da Receita (selecione uma ou mais)</label>
-                    <div class="checkbox-container">
+                    <select name="classificacoes" id="classificacoes" class="form-select" multiple size="5" required>
                         {% for r in receitas %}
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="classificacoes" value="{{ r.id }}" id="receita-{{ r.id }}">
-                            <label class="form-check-label" for="receita-{{ r.id }}">
-                                {{ r.descricao }}
-                            </label>
-                        </div>
+                        <option value="{{ r.id }}">{{ r.descricao }}</option>
                         {% empty %}
-                        <div class="text-muted" style="color: white !important;">Nenhuma receita cadastrada.</div>
+                        <option disabled>Nenhuma receita cadastrada.</option>
                         {% endfor %}
+                    </select>
+                    <div class="form-text" style="color:rgb(80, 85, 90);">
+                        Para selecionar mais de um, segure Ctrl (Windows) ou Cmd (Mac) e clique.
                     </div>
                 </div>
                 </div>
