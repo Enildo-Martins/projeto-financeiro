@@ -8,7 +8,7 @@ from django.db import connection
 
 load_dotenv()
 
-class AgentConsultor:
+class AgentConsultorSimples:
     def __init__(self):
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
@@ -109,10 +109,14 @@ class AgentConsultor:
             2. NÃO inclua '```sql' ou qualquer outra formatação.
             3. Priorize consultas que respondam diretamente à pergunta.
             4. Se a pergunta for sobre "hoje", "este mês", use as funções do PostgreSQL como NOW() ou CURRENT_DATE.
-            
-            --- ATUALIZAÇÃO IMPORTANTE ---
             5. Se a pergunta NÃO tiver NENHUMA relação com o banco de dados (ex: "oi", "bom dia", "quem é você?"), 
                retorne APENAS a palavra 'INVALIDO'.
+
+            --- REGRA DE SINÔNIMOS (IMPORTANTE) ---
+            - O usuário pode usar o termo "cliente". No banco, isso pode ser `tipo = 'CLIENTE'` ou `tipo = 'FATURADO'`.
+            - Se o usuário perguntar por "clientes", gere um SQL que procure por AMBOS: `... WHERE tipo IN ('CLIENTE', 'FATURADO') ...`
+            - Se o usuário perguntar especificamente por "faturado", procure apenas `tipo = 'FATURADO'`.
+            --- FIM DA REGRA DE SINÔNIMOS ---
 
             --- ESQUEMA DO BANCO ---
             {self.schema}

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Consultar Banco de Dados com IA{% endblock %}
+{% block title %}Consulta RAG Simples{% endblock %}
 
 {% block content %}
 <style>
@@ -74,7 +74,7 @@
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span>
-            <i class="bi bi-robot"></i> Consultar Banco de Dados com IA (RAG)
+            <i class="bi bi-robot"></i> Consulta RAG Simples
         </span>
         <button id="clear-history-btn" class="btn btn-sm btn-danger">
             <i class="bi bi-trash-fill"></i> Limpar Histórico
@@ -107,9 +107,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadingSpinner = document.getElementById('loading-spinner');
     const sendBtn = document.getElementById('send-btn');
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    const processUrl = "{% url 'processar_rag_consulta' %}";
+    const processUrl = "{% url 'processar_rag_simples' %}";
     
-    const storageKey = 'chatHistoryRAG';
+    const storageKey = 'chatHistoryRAGSimples';
 
     const clearBtn = document.getElementById('clear-history-btn');
     
