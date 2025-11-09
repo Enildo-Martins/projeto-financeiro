@@ -18,9 +18,8 @@ O processo é orquestrado em um fluxo de trabalho inteligente e automatizado:
 4.  **Persistência (Camada de Repositório):** Após a confirmação do usuário, a aplicação aciona a camada de Repositório, que encapsula toda a comunicação com o banco de dados PostgreSQL. Utilizando queries parametrizadas, ela realiza o cadastro seguro das informações, garantindo a integridade dos dados.
 
 5.  **Consulta de Banco de Dados (Agente 3 - RAG):** O projeto também inclui uma interface de chat com IA para consultar o banco de dados em linguagem natural. Esta funcionalidade é dividida em duas abordagens: 
-**RAG Simples (Text-to-SQL)**, onde o agente (`AgentConsultorSimples`) recebe a pergunta do usuário e o esquema do banco, traduzindo a pergunta diretamente para SQL;
-
-**RAG Embeddings (com Exemplos)**, onde o agente (`AgentConsultorEmbeddings`) compara a pergunta do usuário com um corpus de exemplos (`corpus_exemplos.py`) usando embeddings vetoriais (`numpy`). Os exemplos mais relevantes são recuperados (Retrieval) e aumentados (Augmentation) ao prompt, permitindo que a IA gere (Generation) consultas SQL muito mais complexas e precisas (com JOINs, sinônimos de negócio, etc.).
+    * **RAG Simples (Text-to-SQL)**, onde o agente (`AgentConsultorSimples`) recebe a pergunta do usuário e o esquema do banco, traduzindo a pergunta diretamente para SQL;
+    * **RAG Embeddings (com Exemplos)**, onde o agente (`AgentConsultorEmbeddings`) compara a pergunta do usuário com um corpus de exemplos (`corpus_exemplos.py`) usando embeddings vetoriais (`numpy`). Os exemplos mais relevantes são recuperados (Retrieval) e aumentados (Augmentation) ao prompt, permitindo que a IA gere (Generation) consultas SQL muito mais complexas e precisas (com JOINs, sinônimos de negócio, etc.).
 
 ## Tecnologias e Padrões
 
