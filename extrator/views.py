@@ -1,3 +1,5 @@
+import json
+from agents.agent_rag.consultor_db import AgentConsultor
 from django.db import transaction
 from django.http import JsonResponse
 from django.contrib import messages
@@ -225,3 +227,28 @@ def movimento_list_view(request):
     ]
     context = {'movimentos': movimentos}
     return render(request, 'movimento_list.html', context)
+
+def rag_view(request):
+    """Apenas renderiza a página de consulta"""
+    return render(request, 'rag_consulta.html')
+
+
+def processar_rag_consulta_view(request):
+    """Recebe a pergunta, chama o agente e devolve a resposta em JSON."""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            pergunta = data.get('pergunta')
+            
+            if not pergunta:
+                return JsonResponse({'error': 'Nenhuma pergunta fornecida.'}, status=400)
+            
+            agent = AgentConsultor()
+            resposta = agent.executar(pergunta)
+            
+            return JsonResponse({'resposta': resposta})
+        
+        except Exception as e:
+            return JsonResponse({'error': f'Erro no servidor: {e}'}, status=500)
+    
+    return JsonResponse({'error': 'Método inválido.'}, status=405)

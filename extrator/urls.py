@@ -6,6 +6,8 @@ urlpatterns = [
     path('processar/', views.processar_pdf_view, name='processar_pdf'),
     path('task_status/<str:task_id>/', views.task_status_view, name='task_status'),
     path('confirmar-lancamento/', views.confirmar_lancamento_view, name='confirmar_lancamento'),
+    path('rag-consulta/', views.rag_view, name='rag_view'),
+    path('processar-consulta/', views.processar_rag_consulta_view, name='processar_rag_consulta'),
 
     path('pessoas/', views.pessoa_list_view, name='pessoa_list'),
     path('pessoas/nova/', views.pessoa_form_view, name='pessoa_create'),
