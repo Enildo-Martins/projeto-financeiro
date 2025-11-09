@@ -109,6 +109,10 @@ class AgentConsultor:
             2. NÃO inclua '```sql' ou qualquer outra formatação.
             3. Priorize consultas que respondam diretamente à pergunta.
             4. Se a pergunta for sobre "hoje", "este mês", use as funções do PostgreSQL como NOW() ou CURRENT_DATE.
+            
+            --- ATUALIZAÇÃO IMPORTANTE ---
+            5. Se a pergunta NÃO tiver NENHUMA relação com o banco de dados (ex: "oi", "bom dia", "quem é você?"), 
+               retorne APENAS a palavra 'INVALIDO'.
 
             --- ESQUEMA DO BANCO ---
             {self.schema}
@@ -120,26 +124,41 @@ class AgentConsultor:
             """
 
             response_sql = self.model.generate_content(prompt_sql)
-            sql_query = response_sql.text.strip()
 
-            # --- Etapa 2: Executar o SQL ---
-            # (Se o SQL for inválido ou perigoso, esta etapa falhará)
-            sql_results = self._executar_query_segura(sql_query)
+            try:
+                sql_query = response_sql.text.strip()
+            except ValueError:
+                sql_query = 'INVALIDO' 
+                
+            if not sql_query:
+                sql_query = 'INVALIDO'
+
+
+            # --- Etapa 2: Executar o SQL (ou pular) ---
+            if sql_query.upper() == 'INVALIDO':
+                sql_results = json.dumps({"erro": "A pergunta não parece ser uma consulta de banco de dados."})
+            else:
+                sql_results = self._executar_query_segura(sql_query)
 
             # --- Etapa 3: Gerar a Resposta Final ---
             prompt_final = f"""
             Você é um assistente financeiro amigável.
             A pergunta do usuário foi: "{pergunta_usuario}"
             
-            Para responder, eu executei a consulta SQL:
+            Para responder, eu executei (ou tentei executar) a consulta SQL:
             `{sql_query}`
             
             E obtive os seguintes resultados do banco (em formato JSON):
             {sql_results}
 
             Com base nesses resultados, elabore uma resposta clara e amigável em português para o usuário.
+            
+            --- NOVAS REGRAS DE RESPOSTA ---
+            - Se o SQL for 'INVALIDO' ou o resultado contiver "A pergunta não parece ser uma consulta", 
+              explique amigavelmente que você é um assistente focado em dados financeiros e não entendeu a pergunta 
+              (ex: "Olá! Sou um assistente focado em dados. Como posso ajudar com suas finanças?").
             - Se os resultados forem uma lista vazia, diga que "Nenhum dado foi encontrado para essa consulta."
-            - Se for um erro, explique o erro de forma simples (ex: "Tive um problema ao consultar o banco de dados.").
+            - Se for um erro (diferente de 'INVALIDO'), explique o erro de forma simples (ex: "Tive um problema ao consultar o banco de dados.").
             - Se for um número (ex: contagem), responda diretamente (ex: "Foram encontrados 5 fornecedores.").
             - Se for uma lista de itens, formate-os de maneira legível.
 
@@ -147,7 +166,11 @@ class AgentConsultor:
             """
             
             response_final = self.model.generate_content(prompt_final)
-            return response_final.text
+            
+            try:
+                return response_final.text
+            except ValueError:
+                return "Desculpe, tive um problema ao processar a resposta final. Tente novamente."
 
         except Exception as e:
             return f"Desculpe, ocorreu um erro geral no processamento da sua pergunta: {e}"
