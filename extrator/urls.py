@@ -6,6 +6,10 @@ urlpatterns = [
     path('processar/', views.processar_pdf_view, name='processar_pdf'),
     path('task_status/<str:task_id>/', views.task_status_view, name='task_status'),
     path('confirmar-lancamento/', views.confirmar_lancamento_view, name='confirmar_lancamento'),
+    path('consulta/simples/', views.rag_simples_view, name='rag_simples_view'),
+    path('processar-consulta/simples/', views.processar_rag_simples_view, name='processar_rag_simples'),
+    path('consulta/embeddings/', views.rag_embeddings_view, name='rag_embeddings_view'),
+    path('processar-consulta/embeddings/', views.processar_rag_embeddings_view, name='processar_rag_embeddings'),
 
     path('pessoas/', views.pessoa_list_view, name='pessoa_list'),
     path('pessoas/nova/', views.pessoa_form_view, name='pessoa_create'),
