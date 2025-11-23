@@ -9,20 +9,19 @@ from django.db import connection
 load_dotenv()
 
 class AgentConsultorSimples:
-    def __init__(self):
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("A chave da API do Gemini não foi encontrada no arquivo .env.")
+    def __init__(self, api_key=None):
+        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+        
+        if not self.api_key:
+            raise ValueError("A chave da API do Gemini é obrigatória para consulta.")
 
-        genai.configure(api_key=api_key)
+        genai.configure(api_key=self.api_key)
         self.model = genai.GenerativeModel('gemini-2.5-flash')
         self.schema = self._get_db_schema()
 
     def _get_db_schema(self):
         """
         Define o esquema do banco de dados que o LLM pode usar.
-        Para segurança, definimos manualmente quais tabelas e colunas
-        o agente pode "ver" e consultar.
         """
         schema_info = """
         Tabela "Pessoas":
@@ -89,7 +88,6 @@ class AgentConsultorSimples:
                                 processed_row[col_name] = value
                         results.append(processed_row)
 
-                # Limitar a 50 resultados para não sobrecarregar o LLM
                 return json.dumps(results[:50], ensure_ascii=False) 
             
             except Exception as e:

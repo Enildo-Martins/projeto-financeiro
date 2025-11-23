@@ -10,6 +10,7 @@ urlpatterns = [
     path('processar-consulta/simples/', views.processar_rag_simples_view, name='processar_rag_simples'),
     path('consulta/embeddings/', views.rag_embeddings_view, name='rag_embeddings_view'),
     path('processar-consulta/embeddings/', views.processar_rag_embeddings_view, name='processar_rag_embeddings'),
+    path('configurar-api/', views.config_api_view, name='config_api'),
 
     path('pessoas/', views.pessoa_list_view, name='pessoa_list'),
     path('pessoas/nova/', views.pessoa_form_view, name='pessoa_create'),

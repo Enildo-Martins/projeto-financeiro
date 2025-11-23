@@ -1,3 +1,4 @@
+import base64
 from celery import shared_task, states
 from celery.exceptions import Ignore
 from agents.agent_extrator.processador_pdf import AgentExtrator
@@ -7,14 +8,21 @@ from .repositories.classificacao_repository import ClassificacaoRepository
 
 
 @shared_task(bind=True)
-def processar_pdf_task(self, pdf_content_bytes):
+def processar_pdf_task(self, pdf_content_b64, api_key):
     try:
+        # Decodifica de string Base64 para bytes
+        pdf_content_bytes = base64.b64decode(pdf_content_b64)
+
         self.update_state(state='PROGRESS', meta={'status': 'Agente 1 (Gemini) está extraindo os dados...'})
-        agente_extrator = AgentExtrator()
+        
+        # Passa a chave para o Extrator
+        agente_extrator = AgentExtrator(api_key=api_key)
         dados_extraidos = agente_extrator.executar(pdf_content_bytes)
 
-        self.update_state(state='PROGRESS', meta={'status': 'Agente 2 (OpenAI) está auditando os riscos...'})
-        agente_analista = AgentFraudCompliance(dados_extraidos)
+        self.update_state(state='PROGRESS', meta={'status': 'Agente 2 (Gemini Risk) está auditando os riscos...'})
+        
+        # Passa a chave para o Analista
+        agente_analista = AgentFraudCompliance(dados_extraidos, api_key=api_key)
         analise_risco = agente_analista.analisar()
 
         self.update_state(state='PROGRESS', meta={'status': 'Validando com o banco de dados...'})
@@ -27,22 +35,14 @@ def processar_pdf_task(self, pdf_content_bytes):
         classificacoes_validadas = []
         for desc in dados_extraidos['classificacoes_despesa']:
             class_id = classificacao_repo.find_by_descricao(desc)
-            classificacoes_validadas.append({
-                                                'status': 'EXISTE', 'id': class_id, 'detail': {'descricao': desc}
-                                            } if class_id else {
-                'status': 'NÃO EXISTE', 'id': None, 'detail': {'descricao': desc}
-            })
+            if class_id:
+                classificacoes_validadas.append({'status': 'EXISTE', 'id': class_id, 'detail': {'descricao': desc}})
+            else:
+                classificacoes_validadas.append({'status': 'NÃO EXISTE', 'id': None, 'detail': {'descricao': desc}})
 
         validacao_db = {
-            'fornecedor': {'status': 'EXISTE', 'id': fornecedor_id,
-                           'detail': dados_extraidos['fornecedor']} if fornecedor_id else {'status': 'NÃO EXISTE',
-                                                                                           'id': None,
-                                                                                           'detail': dados_extraidos[
-                                                                                               'fornecedor']},
-            'faturado': {'status': 'EXISTE', 'id': faturado_id,
-                         'detail': dados_extraidos['faturado']} if faturado_id else {'status': 'NÃO EXISTE', 'id': None,
-                                                                                     'detail': dados_extraidos[
-                                                                                         'faturado']},
+            'fornecedor': {'status': 'EXISTE', 'id': fornecedor_id, 'detail': dados_extraidos['fornecedor']} if fornecedor_id else {'status': 'NÃO EXISTE', 'id': None, 'detail': dados_extraidos['fornecedor']},
+            'faturado': {'status': 'EXISTE', 'id': faturado_id, 'detail': dados_extraidos['faturado']} if faturado_id else {'status': 'NÃO EXISTE', 'id': None, 'detail': dados_extraidos['faturado']},
             'classificacoes': classificacoes_validadas,
         }
 
