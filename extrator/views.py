@@ -190,9 +190,25 @@ def config_api_view(request):
 
 def pessoa_list_view(request):
     repo = PessoaRepository()
-    pessoas_raw = repo.list_all()
+    pessoas_raw = []
+    
+    termo_busca = request.GET.get('busca', '')
+    modo = request.GET.get('modo', '')
+    ordenar_por = request.GET.get('ordenar', 'razaosocial')
+
+    if modo == 'todos':
+        pessoas_raw = repo.list_all_active(order_by=ordenar_por)
+    elif termo_busca:
+        pessoas_raw = repo.search_active(termo_busca, order_by=ordenar_por)
+    
     pessoas = [{'id': p[0], 'razaosocial': p[1], 'documento': p[2], 'tipo': p[3], 'status': p[4]} for p in pessoas_raw]
-    return render(request, 'pessoa_list.html', {'pessoas': pessoas})
+    
+    return render(request, 'pessoa_list.html', {
+        'pessoas': pessoas, 
+        'busca_atual': termo_busca,
+        'modo_atual': modo,
+        'ordenar_atual': ordenar_por
+    })
 
 def pessoa_form_view(request, pk=None):
     repo = PessoaRepository()
@@ -220,9 +236,25 @@ def pessoa_toggle_status_view(request, pk):
 
 def classificacao_list_view(request):
     repo = ClassificacaoRepository()
-    classificacoes_raw = repo.list_all()
+    classificacoes_raw = []
+    
+    termo_busca = request.GET.get('busca', '')
+    modo = request.GET.get('modo', '')
+    ordenar_por = request.GET.get('ordenar', 'descricao')
+
+    if modo == 'todos':
+        classificacoes_raw = repo.list_all(order_by=ordenar_por)
+    elif termo_busca:
+        classificacoes_raw = repo.search(termo_busca, order_by=ordenar_por)
+    
     classificacoes = [{'id': c[0], 'descricao': c[1], 'tipo': c[2], 'status': c[3]} for c in classificacoes_raw]
-    return render(request, 'classificacao_list.html', {'classificacoes': classificacoes})
+    
+    return render(request, 'classificacao_list.html', {
+        'classificacoes': classificacoes,
+        'busca_atual': termo_busca,
+        'modo_atual': modo,
+        'ordenar_atual': ordenar_por
+    })
 
 def classificacao_form_view(request, pk=None):
     repo = ClassificacaoRepository()
@@ -292,7 +324,17 @@ def movimento_receber_create_view(request):
 
 def movimento_list_view(request):
     repo = MovimentoRepository()
-    movimentos_raw = repo.list_all_movements()
+    movimentos_raw = []
+    
+    termo_busca = request.GET.get('busca', '')
+    modo = request.GET.get('modo', '')
+    ordenar_por = request.GET.get('ordenar', '-dataemissao')
+
+    if modo == 'todos':
+        movimentos_raw = repo.list_all_movements(order_by=ordenar_por)
+    elif termo_busca:
+        movimentos_raw = repo.search_movements(termo_busca, order_by=ordenar_por)
+    
     movimentos = [
         {
             'id': m[0], 'dataemissao': m[1], 'numeronotafiscal': m[2],
@@ -300,5 +342,10 @@ def movimento_list_view(request):
             'valortotal': m[6], 'status': m[7]
         } for m in movimentos_raw
     ]
-    context = {'movimentos': movimentos}
-    return render(request, 'movimento_list.html', context)
+    
+    return render(request, 'movimento_list.html', {
+        'movimentos': movimentos,
+        'busca_atual': termo_busca,
+        'modo_atual': modo,
+        'ordenar_atual': ordenar_por
+    })

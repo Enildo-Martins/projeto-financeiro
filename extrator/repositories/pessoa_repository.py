@@ -57,3 +57,42 @@ class PessoaRepository(BaseRepository):
             WHERE tipo IN ('CLIENTE', 'FATURADO') AND status = 'ATIVO' ORDER BY razaosocial
         """
         return self._execute_query(query, fetch="all")
+    
+    def list_all_active(self, order_by='razaosocial'):
+        order_sql = self._get_order_clause(order_by)
+        query = f"""
+            SELECT id, razaosocial, documento, tipo, status 
+            FROM "Pessoas" 
+            WHERE status = 'ATIVO' 
+            ORDER BY {order_sql}
+        """
+        return self._execute_query(query, fetch="all")
+
+    def search_active(self, termo, order_by='razaosocial'):
+        order_sql = self._get_order_clause(order_by)
+        query = f"""
+            SELECT id, razaosocial, documento, tipo, status 
+            FROM "Pessoas" 
+            WHERE (razaosocial ILIKE %s OR documento ILIKE %s)
+            AND status = 'ATIVO'
+            ORDER BY {order_sql}
+        """
+        param = f"%{termo}%"
+        return self._execute_query(query, [param, param], fetch="all")
+    
+    def _get_order_clause(self, order_param):
+        """
+        Traduz o parâmetro de ordenação da URL para SQL seguro.
+        Evita SQL Injection validando contra uma lista permitida.
+        """
+        mapeamento = {
+            'razaosocial': 'razaosocial ASC',
+            '-razaosocial': 'razaosocial DESC',
+            'documento': 'documento ASC',
+            '-documento': 'documento DESC',
+            'tipo': 'tipo ASC',
+            '-tipo': 'tipo DESC',
+            'status': 'status ASC',
+            '-status': 'status DESC'
+        }
+        return mapeamento.get(order_param, 'razaosocial ASC')

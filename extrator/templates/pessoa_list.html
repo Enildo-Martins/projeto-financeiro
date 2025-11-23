@@ -4,43 +4,106 @@
 {% block content %}
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-people-fill"></i> Pessoas (Fornecedores, Clientes, Faturados)</span>
-        <a href="{% url 'pessoa_create' %}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Adicionar Nova</a>
+        <span><i class="bi bi-people-fill"></i> Gerenciar Pessoas</span>
+        <a href="{% url 'pessoa_create' %}" class="btn btn-success"><i class="bi bi-plus-lg"></i> Nova Pessoa</a>
     </div>
     <div class="card-body">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Razão Social/Nome</th>
-                    <th>Documento</th>
-                    <th>Tipo</th>
-                    <th>Status</th>
-                    <th class="text-end">Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for p in pessoas %}
-                <tr>
-                    <td>{{ p.razaosocial }}</td>
-                    <td>{{ p.documento }}</td>
-                    <td>{{ p.tipo|capfirst }}</td>
-                    <td>
-                        <span class="badge bg-{% if p.status|lower == 'ativo' %}success{% else %}danger{% endif %}">
-                            {{ p.status }}
-                        </span>
-                    </td>
-                    <td class="text-end">
-                        <a href="{% url 'pessoa_update' p.id %}" class="btn btn-sm btn-info" title="Editar"><i class="bi bi-pencil-fill"></i></a>
-                        <a href="{% url 'pessoa_toggle_status' p.id %}" class="btn btn-sm btn-warning" title="{% if p.status|lower == 'ativo' %}Inativar{% else %}Reativar{% endif %}">
-                            <i class="bi bi-{% if p.status|lower == 'ativo' %}slash-circle-fill{% else %}check-circle-fill{% endif %}"></i>
-                        </a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="5" class="text-center">Nenhum registro encontrado.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        
+        <form method="get" class="row g-3 mb-4 align-items-end">
+            <div class="col-md-6">
+                <label for="busca" class="form-label">Buscar por Nome ou Documento</label>
+                <div class="input-group">
+                    <input type="text" name="busca" id="busca" class="form-control" placeholder="Digite para buscar..." value="{{ busca_atual|default:'' }}">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="bi bi-search"></i> Buscar
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <a href="?modo=todos" class="btn btn-secondary">
+                    <i class="bi bi-list-ul"></i> Carregar Todos (Ativos)
+                </a>
+                {% if pessoas %}
+                <a href="{% url 'pessoa_list' %}" class="btn btn-outline-secondary ms-2">
+                    <i class="bi bi-eraser"></i> Limpar
+                </a>
+                {% endif %}
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>
+                            <a href="?busca={{ busca_atual }}&modo={{ modo_atual }}&ordenar={% if ordenar_atual == 'razaosocial' %}-razaosocial{% else %}razaosocial{% endif %}" 
+                               class="text-decoration-none text-reset d-flex justify-content-between align-items-center">
+                                Razão Social / Nome
+                                {% if ordenar_atual == 'razaosocial' %}<i class="bi bi-sort-alpha-down"></i>
+                                {% elif ordenar_atual == '-razaosocial' %}<i class="bi bi-sort-alpha-up-alt"></i>
+                                {% else %}<i class="bi bi-filter text-muted" style="font-size: 0.8em;"></i>{% endif %}
+                            </a>
+                        </th>
+
+                        <th>
+                            <a href="?busca={{ busca_atual }}&modo={{ modo_atual }}&ordenar={% if ordenar_atual == 'documento' %}-documento{% else %}documento{% endif %}" 
+                               class="text-decoration-none text-reset d-flex justify-content-between align-items-center">
+                                Documento
+                                {% if ordenar_atual == 'documento' %}<i class="bi bi-sort-numeric-down"></i>
+                                {% elif ordenar_atual == '-documento' %}<i class="bi bi-sort-numeric-up-alt"></i>
+                                {% else %}<i class="bi bi-filter text-muted" style="font-size: 0.8em;"></i>{% endif %}
+                            </a>
+                        </th>
+
+                        <th>
+                            <a href="?busca={{ busca_atual }}&modo={{ modo_atual }}&ordenar={% if ordenar_atual == 'tipo' %}-tipo{% else %}tipo{% endif %}" 
+                               class="text-decoration-none text-reset d-flex justify-content-between align-items-center">
+                                Tipo
+                                {% if ordenar_atual == 'tipo' %}<i class="bi bi-sort-alpha-down"></i>
+                                {% elif ordenar_atual == '-tipo' %}<i class="bi bi-sort-alpha-up-alt"></i>
+                                {% else %}<i class="bi bi-filter text-muted" style="font-size: 0.8em;"></i>{% endif %}
+                            </a>
+                        </th>
+
+                        <th>Status</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in pessoas %}
+                    <tr>
+                        <td>{{ p.razaosocial }}</td>
+                        <td>{{ p.documento }}</td>
+                        <td>{{ p.tipo|capfirst }}</td>
+                        <td>
+                            <span class="badge bg-{% if p.status == 'ATIVO' %}success{% else %}danger{% endif %}">
+                                {{ p.status }}
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'pessoa_update' p.id %}" class="btn btn-sm btn-info me-1" title="Editar">
+                                <i class="bi bi-pencil-fill"></i>
+                            </a>
+                            <a href="{% url 'pessoa_toggle_status' p.id %}" class="btn btn-sm btn-danger" title="Excluir (Inativar)" onclick="return confirm('Tem certeza que deseja inativar este registro?');">
+                                <i class="bi bi-trash-fill"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">
+                            <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                            {% if busca_atual or modo_atual %}
+                                Nenhum registro encontrado.
+                            {% else %}
+                                A lista inicia vazia. Utilize a <strong>Busca</strong> ou clique em <strong>Carregar Todos</strong>.
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}
