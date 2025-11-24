@@ -51,7 +51,7 @@ class Command(BaseCommand):
                 self.stdout.write('- Criando Movimentos...')
                 for _ in range(160):
                     tipo = random.choice(['PAGAR', 'RECEBER'])
-                    # Escolhe aleatoriamente da lista de pessoas criada
+
                     p1 = random.choice(pessoas)
                     p2 = random.choice(pessoas)
                     
@@ -62,7 +62,7 @@ class Command(BaseCommand):
                         descricao=faker.sentence(nb_words=6),
                         valortotal=round(random.uniform(100, 50000), 2),
                         status=random.choice(['PENDENTE', 'PAGO']),
-                        fornecedor=p1, # No modelo é 'fornecedor', mas serve como 'Pessoa 1'
+                        fornecedor=p1,
                         faturado=p2
                     )
                     

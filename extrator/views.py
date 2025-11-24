@@ -351,15 +351,16 @@ def movimento_list_view(request):
         'ordenar_atual': ordenar_por
     })
     
-def popular_banco_view(request):
-    """
-    View secreta para rodar o script de popular o banco via navegador.
-    Útil para servidores onde o Shell é pago/bloqueado.
-    """
-
-    try:
-        # Chama o comando que criamos (popular_banco.py)
-        call_command('popular_banco')
-        return JsonResponse({'status': 'Sucesso! 200 registros criados no banco.'})
-    except Exception as e:
-        return JsonResponse({'error': f'Erro ao popular banco: {str(e)}'}, status=500)
+#Função utilizada para popular o banco de dados para testes.
+#def popular_banco_view(request):
+#    """
+#    View secreta para rodar o script de popular o banco via navegador.
+#   Útil para servidores onde o Shell é pago/bloqueado.
+#   """
+#
+#    try:
+#        # Chama o comando que criamos (popular_banco.py)
+#        call_command('popular_banco')
+#        return JsonResponse({'status': 'Sucesso! 200 registros criados no banco.'})
+#    except Exception as e:
+#        return JsonResponse({'error': f'Erro ao popular banco: {str(e)}'}, status=500)
