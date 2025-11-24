@@ -1,0 +1,66 @@
+databases:
+  - name: financeiro_db
+    databaseName: financeiro
+    user: admin
+    plan: free
+
+services:
+  # 1. O Redis (Cache/Broker)
+  - type: redis
+    name: financeiro_redis
+    ipAllowList: [] # Apenas interno
+    plan: free
+
+  # 2. O Site Django (Web)
+  - type: web
+    name: projeto-financeiro-web
+    runtime: docker
+    plan: free
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: financeiro_db
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: financeiro_redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: financeiro_redis
+          property: connectionString
+    # Comando para iniciar o servidor em produção
+    dockerCommand: sh -c "python manage.py migrate && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT"
+
+  # 3. O Worker do Celery (IA em Background)
+  - type: worker
+    name: projeto-financeiro-celery
+    runtime: docker
+    plan: free
+    envVars:
+      - key: DEBUG
+        value: "False"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: financeiro_db
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: financeiro_redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: financeiro_redis
+          property: connectionString
+      # IMPORTANTE: Aqui o usuário deve adicionar as chaves de API manualmente no dashboard depois
+      # GEMINI_API_KEY e OPENAI_API_KEY
+    # Comando para iniciar o worker
+    dockerCommand: celery -A core worker -l info
