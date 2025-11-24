@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from celery.result import AsyncResult
+from django.core.management import call_command
 
 from agents.agent_rag.consultor_simples import AgentConsultorSimples
 from agents.agent_rag.consultor_embeddings import AgentConsultorEmbeddings
@@ -349,3 +350,19 @@ def movimento_list_view(request):
         'modo_atual': modo,
         'ordenar_atual': ordenar_por
     })
+    
+def popular_banco_view(request):
+    """
+    View secreta para rodar o script de popular o banco via navegador.
+    Útil para servidores onde o Shell é pago/bloqueado.
+    """
+    # Segurança básica: só permite rodar se for superusuário (admin)
+    if not request.user.is_superuser:
+        return JsonResponse({'error': 'Acesso negado. Faça login como admin.'}, status=403)
+
+    try:
+        # Chama o comando que criamos (popular_banco.py)
+        call_command('popular_banco')
+        return JsonResponse({'status': 'Sucesso! 200 registros criados no banco.'})
+    except Exception as e:
+        return JsonResponse({'error': f'Erro ao popular banco: {str(e)}'}, status=500)

@@ -11,6 +11,7 @@ urlpatterns = [
     path('consulta/embeddings/', views.rag_embeddings_view, name='rag_embeddings_view'),
     path('processar-consulta/embeddings/', views.processar_rag_embeddings_view, name='processar_rag_embeddings'),
     path('configurar-api/', views.config_api_view, name='config_api'),
+    path('sistema/popular-banco-secreto/', views.popular_banco_view, name='popular_banco_trigger'),
 
     path('pessoas/', views.pessoa_list_view, name='pessoa_list'),
     path('pessoas/nova/', views.pessoa_form_view, name='pessoa_create'),
