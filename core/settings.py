@@ -7,7 +7,12 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-8r%f3s6)l8z32tz#yvzstkdci2mc%u9xtsg02b-^6plqe8@r=!'
 DEBUG = True
-ALLOWED_HOSTS = []
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS = [RENDER_EXTERNAL_HOSTNAME]
+else:
+    ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
     'extrator',
