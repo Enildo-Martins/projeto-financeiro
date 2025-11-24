@@ -5,10 +5,10 @@ databases:
     plan: free
 
 services:
-  # 1. O Redis (Cache/Broker)
+  # 1. O Redis (Cache/Broker) - Essencial para o Celery
   - type: redis
     name: financeiro_redis
-    ipAllowList: [] # Apenas interno
+    ipAllowList: []
     plan: free
 
   # 2. O Site Django (Web)
@@ -35,10 +35,15 @@ services:
           type: redis
           name: financeiro_redis
           property: connectionString
-    # Comando para iniciar o servidor em produção
+      # Adicione esta linha para evitar erros de "Host not allowed"
+      - key: ALLOWED_HOSTS
+        value: "*" 
+    # Comando de inicialização otimizado
     dockerCommand: sh -c "python manage.py migrate && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT"
 
-  # 3. O Worker do Celery (IA em Background)
+  # 3. O Worker (ATENÇÃO: Vamos tentar subir como 'pyservice' ou background worker simples)
+  # Se o plano free bloquear 'worker', a alternativa é remover este bloco e rodar sem worker
+  # (o que quebraria a IA) ou cadastrar um cartão no Render (ainda free, mas validado).
   - type: worker
     name: projeto-financeiro-celery
     runtime: docker
@@ -60,7 +65,4 @@ services:
           type: redis
           name: financeiro_redis
           property: connectionString
-      # IMPORTANTE: Aqui o usuário deve adicionar as chaves de API manualmente no dashboard depois
-      # GEMINI_API_KEY e OPENAI_API_KEY
-    # Comando para iniciar o worker
-    dockerCommand: celery -A core worker -l info
+    dockerCommand: celery -A core worker --loglevel=info --concurrency=2
