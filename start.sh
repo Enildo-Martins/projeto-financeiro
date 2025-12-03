@@ -1,16 +1,18 @@
 #!/bin/bash
 
-# Sai do script se der erro em qualquer comando
 set -e
 
 echo "Rodando Migrations..."
 python manage.py migrate
 
-echo "Iniciando Celery Worker em Background..."
-# O '&' no final faz ele rodar em segundo plano
-# Usamos --concurrency=1 para gastar pouca memória do servidor grátis
+echo "Coletando arquivos estáticos..."
+python manage.py collectstatic --noinput
+
+echo "Iniciando Celery Worker..."
 celery -A core worker --loglevel=info --concurrency=1 &
 
-echo "Iniciando Gunicorn (Servidor Web)..."
-# O Render injeta a variável PORT automaticamente
+# Define a porta como 10000 se a variável $PORT não existir
+PORT=${PORT:-10000}
+
+echo "Iniciando Gunicorn na porta $PORT..."
 gunicorn core.wsgi:application --bind 0.0.0.0:$PORT
